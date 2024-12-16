@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天氣預報</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="index.html">API 介紹</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="index.html">股票資訊</a></li>
+                        <li class="nav-item"><a class="nav-link" href="weather.html">天氣預報</a></li>
+                        <li class="nav-item"><a class="nav-link" href="air.html">空氣品質</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <!-- 頁面內容 -->
+    <div class="container mt-5">
+        <h1 class="text-center">天氣預報</h1>
+        <p class="text-center">顯示全台氣象站即時監測數據</p>
+
+        <!-- 搜尋欄位 -->
+        <div class="mb-4">
+            <input type="text" id="weather-search-input" class="form-control" placeholder="輸入氣象站名稱或縣市進行搜尋...">
+        </div>
+
+        <!-- 資料表格 -->
+        <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>氣象站名稱</th>
+                <th>氣象站 ID</th>
+                <th>縣市</th>
+                <th>鄉鎮</th>
+                <th>天氣現象</th>
+                <th>溫度 (°C)</th>
+                <th>相對濕度 (%)</th>
+                <th>風速 (m/s)</th>
+                <th>資料時間</th>
+              </tr>
+            </thead>
+            <tbody id="weather-table"></tbody>
+          </table>
+    </div>
+
+    <!-- Script -->
+    <script>
+        let weatherData = []; // 保存所有氣象站數據
+        const weatherTable = document.getElementById('weather-table');
+        const weatherSearchInput = document.getElementById('weather-search-input');
+
+        fetch('https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization=rdec-key-123-45678-011121314')
+            .then(response => response.json())
+            .then(data => {
+                if (data.records && data.records.Station) {
+                    const records = data.records.Station;
+
+                    weatherData = records.map(station => {
+                        const geoInfo = station.GeoInfo || {};
+                        const weatherElement = station.WeatherElement || {};
+
+                        return {
+                            StationName: station.StationName || 'N/A',
+                            StationId: station.StationId || 'N/A',
+                            CountyName: geoInfo.CountyName || 'N/A',
+                            TownName: geoInfo.TownName || 'N/A',
+                            Weather: weatherElement.Weather || 'N/A',
+                            AirTemperature: weatherElement.AirTemperature || 'N/A',
+                            RelativeHumidity: weatherElement.RelativeHumidity || 'N/A',
+                            WindSpeed: weatherElement.WindSpeed || 'N/A',
+                            ObsTime: station.ObsTime?.DateTime || 'N/A',
+                        };
+                    });
+
+                    renderWeatherTable(weatherData); // 初始載入所有資料
+                } else {
+                    console.error('Invalid API response structure:', data);
+                }
+            })
+            .catch(error => console.error('Error fetching weather data:', error));
+
+        // 渲染表格
+        function renderWeatherTable(data) {
+            const weatherTable = document.getElementById('weather-table');
+            weatherTable.innerHTML = ''; // 清空表格內容
+            data.forEach(record => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+      <td>${record.StationName}</td>
+      <td>${record.StationId}</td>
+      <td>${record.CountyName}</td>
+      <td>${record.TownName}</td>
+      <td>${record.Weather}</td>
+      <td>${record.AirTemperature}</td>
+      <td>${record.RelativeHumidity}</td>
+      <td>${record.WindSpeed}</td>
+      <td>${record.ObsTime}</td>
+    `;
+                weatherTable.appendChild(tr);
+            });
+        }
+
+
+        // 搜尋功能
+        weatherSearchInput.addEventListener('input', () => {
+            const keyword = weatherSearchInput.value.toLowerCase(); // 取得輸入值
+            const filteredData = weatherData.filter(record =>
+                record.StationName.toLowerCase().includes(keyword) ||
+                record.CountyName.toLowerCase().includes(keyword) ||
+                record.TownName.toLowerCase().includes(keyword)
+            );
+            renderWeatherTable(filteredData); // 根據搜尋結果渲染表格
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
